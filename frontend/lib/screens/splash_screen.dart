@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:ubuntu_app/utils/colors.dart';
+import 'package:ubuntu_app/utils/text_styles.dart';
 import 'onboard_1.dart';
 
 class SplashScreen extends StatelessWidget {
@@ -10,7 +12,7 @@ class SplashScreen extends StatelessWidget {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF9A4D00), Color(0xFFFF8C42)],
+            colors: [AppColors.splashPrimary, AppColors.splashSecondary],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -24,36 +26,25 @@ class SplashScreen extends StatelessWidget {
                 height: 100,
                 width: 100,
                 decoration: const BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.splashWhite,
                   shape: BoxShape.circle,
                 ),
                 child: const Center(
-                  child: Text(
-                    "Ubuntu",
-                    style: TextStyle(
-                      color: Color(0xFF9A4D00),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
-                  ),
+                  child: Text("Ubuntu", style: AppTextStyles.splashLogo),
                 ),
               ),
               const SizedBox(height: 24),
 
               const Text(
                 "Ubuntu Interiors",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: AppTextStyles.splashAppName,
               ),
 
               const SizedBox(height: 8),
               const Text(
                 "United by Culture. Inspired\nThrough Art",
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white70, fontSize: 16),
+                style: AppTextStyles.splashTagline,
               ),
 
               const SizedBox(height: 40),
@@ -68,8 +59,8 @@ class SplashScreen extends StatelessWidget {
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Color(0xFF9A4D00),
+                  backgroundColor: AppColors.splashWhite,
+                  foregroundColor: AppColors.splashPrimary,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
                     vertical: 12,
@@ -80,7 +71,7 @@ class SplashScreen extends StatelessWidget {
                 ),
                 child: const Text(
                   "Start with Ubuntu",
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: AppTextStyles.splashButton,
                 ),
               ),
             ],
