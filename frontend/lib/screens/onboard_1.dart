@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:ubuntu_app/utils/colors.dart';
+import 'package:ubuntu_app/utils/text_styles.dart';
 import 'onboard_2.dart';
-import 'login_page.dart'; // ✅ Import the login page
+import 'login_page.dart';
 
 class OnboardingScreen1 extends StatelessWidget {
   const OnboardingScreen1({super.key});
@@ -8,7 +10,7 @@ class OnboardingScreen1 extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.white,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
@@ -20,28 +22,24 @@ class OnboardingScreen1 extends StatelessWidget {
                 height: 250,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
-                  color: Colors.grey[300],
+                  color: AppColors.onboardingGreyLight,
                 ),
                 child: const Center(child: Text("Image Placeholder")),
               ),
               const SizedBox(height: 32),
 
               // Title
-              Text(
+              const Text(
                 "Discover African Art",
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.brown[800],
-                ),
+                style: AppTextStyles.onboardingHeading,
               ),
               const SizedBox(height: 16),
 
               // Description
-              Text(
+              const Text(
                 "Explore authentic African artwork and connect with talented artists from across the continent.",
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: Colors.grey),
+                style: AppTextStyles.onboardingDescription,
               ),
               const SizedBox(height: 48),
 
@@ -50,7 +48,7 @@ class OnboardingScreen1 extends StatelessWidget {
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.brown[700],
+                    backgroundColor: AppColors.onboardingBrown,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                   onPressed: () {
@@ -61,12 +59,15 @@ class OnboardingScreen1 extends StatelessWidget {
                       ),
                     );
                   },
-                  child: const Text("Continue"),
+                  child: const Text(
+                    "Continue",
+                    style: AppTextStyles.onboardingButton,
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
 
-              // ✅ Skip Button → Go to Login Page
+              // Skip Button
               TextButton(
                 onPressed: () {
                   Navigator.pushReplacement(
@@ -74,7 +75,7 @@ class OnboardingScreen1 extends StatelessWidget {
                     MaterialPageRoute(builder: (context) => const LoginPage()),
                   );
                 },
-                child: Text("Skip", style: TextStyle(color: Colors.brown[700])),
+                child: const Text("Skip", style: AppTextStyles.onboardingSkip),
               ),
             ],
           ),

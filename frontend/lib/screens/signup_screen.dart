@@ -1,159 +1,167 @@
 import 'package:flutter/material.dart';
+import 'package:ubuntu_app/utils/colors.dart';
+import 'package:ubuntu_app/utils/text_styles.dart';
 
-class SignupScreen extends StatefulWidget {
-  const SignupScreen({Key? key}) : super(key: key);
+class SignUpPage extends StatefulWidget {
+  const SignUpPage({super.key});
 
   @override
-  _SignupScreenState createState() => _SignupScreenState();
+  State<SignUpPage> createState() => _SignUpPageState();
 }
 
-class _SignupScreenState extends State<SignupScreen> {
-  final _formKey = GlobalKey<FormState>();
+class _SignUpPageState extends State<SignUpPage> {
+  String selectedRole = 'Customer';
 
-  String fullName = '';
-  String email = '';
-  String password = '';
-  String confirmPassword = '';
+  final TextEditingController nameController = TextEditingController(); // Customer
+  final TextEditingController brandController = TextEditingController(); // Artist
+  final TextEditingController portfolioController = TextEditingController(); // Artist
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Sign Up'), centerTitle: true),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-        child: Form(
-          key: _formKey,
-          child: ListView(
+      backgroundColor: const Color(0xFFFFF6EE),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Full Name Field
-              TextFormField(
-                decoration: const InputDecoration(
-                  labelText: 'Full Name',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.person),
+              Text(
+                "Create Account ",
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFCD7955),
                 ),
-                onSaved: (value) => fullName = value!.trim(),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter your full name';
-                  }
-                  return null;
-                },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
+              Text(
+                "Sign up as a ${selectedRole.toLowerCase()} to get started.",
+                style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+              ),
+              const SizedBox(height: 32),
 
-              // Email Field
-              TextFormField(
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.email),
-                ),
-                keyboardType: TextInputType.emailAddress,
-                onSaved: (value) => email = value!.trim(),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter your email';
-                  }
-                  if (!RegExp(
-                    r'^[\w-\.]+@([\w-]+\.)+[\w]{2,4}',
-                  ).hasMatch(value)) {
-                    return 'Please enter a valid email address';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Password Field
-              TextFormField(
-                decoration: const InputDecoration(
-                  labelText: 'Password',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.lock),
-                ),
-                obscureText: true,
-                onSaved: (value) => password = value!.trim(),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a password';
-                  }
-                  if (value.length < 6) {
-                    return 'Password must be at least 6 characters';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Confirm Password Field
-              TextFormField(
-                decoration: const InputDecoration(
-                  labelText: 'Confirm Password',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.lock_outline),
-                ),
-                obscureText: true,
-                onSaved: (value) => confirmPassword = value!.trim(),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please confirm your password';
-                  }
-                  if (value != password) {
-                    return 'Passwords do not match';
-                  }
-                  return null;
-                },
-              ),
+              _buildRoleSelector(),
               const SizedBox(height: 24),
 
-              // Sign Up Button
-              ElevatedButton(
-                onPressed: () {
-                  final form = _formKey.currentState!;
-                  if (form.validate()) {
-                    form.save();
-                    if (password != confirmPassword) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Passwords do not match')),
-                      );
-                      return;
-                    }
-                    // TODO: Implement signup logic (e.g., call API or Firebase)
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Signing up $fullName...')),
-                    );
-                  }
-                },
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  child: Text('Sign Up', style: TextStyle(fontSize: 18)),
-                ),
-              ),
-
+              // Conditional fields
+              if (selectedRole == 'Customer')
+                _buildInput("Full Name", nameController, false),
+              if (selectedRole == 'Artist') ...[
+                _buildInput("Studio/Brand Name", brandController, false),
+                const SizedBox(height: 16),
+                _buildInput("Portfolio URL", portfolioController, false),
+              ],
               const SizedBox(height: 16),
 
-              // Redirect to Login
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text("Already have an account? "),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.pop(context); // Navigate back to login page
-                    },
-                    child: const Text(
-                      "Log In",
-                      style: TextStyle(
-                        color: Colors.blue,
-                        fontWeight: FontWeight.bold,
-                      ),
+              _buildInput("Email", emailController, false),
+              const SizedBox(height: 16),
+
+              _buildInput("Password", passwordController, true),
+              const SizedBox(height: 32),
+
+              _buildSignUpButton(),
+              const SizedBox(height: 20),
+
+              Center(
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    "Already have an account? Login",
+                    style: TextStyle(
+                      color: Color(0xFF8C4A2F),
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                ],
-              ),
+                ),
+              )
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRoleSelector() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: ['Customer', 'Artist'].map((role) {
+        final isSelected = selectedRole == role;
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: ChoiceChip(
+            label: Text(
+              role,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Color(0xFFDF794E),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            selected: isSelected,
+            selectedColor: Color(0xFFDF805B),
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: Color(0xFFD57A55)),
+            ),
+            onSelected: (_) => setState(() => selectedRole = role),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildInput(String label, TextEditingController controller, bool isPassword) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 6)],
+      ),
+      child: TextField(
+        controller: controller,
+        obscureText: isPassword,
+        decoration: InputDecoration(
+          hintText: label,
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSignUpButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: () {
+          String msg;
+          if (selectedRole == 'Customer') {
+            msg =
+            "Customer: ${nameController.text}, Email: ${emailController.text}";
+          } else {
+            msg =
+            "Artist: ${brandController.text}, Portfolio: ${portfolioController.text}, Email: ${emailController.text}";
+          }
+
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text("Signed up as $msg"),
+            backgroundColor: Color(0xFFCF7D5A),
+          ));
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Color(0xFFDD825D),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 6,
+        ),
+        child: const Text(
+          "Sign Up",
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
       ),
     );
