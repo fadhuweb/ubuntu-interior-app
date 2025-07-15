@@ -1,4 +1,4 @@
-package com.example.ubuntu_app
+package com.ubuntu.interiors
 
 import io.flutter.embedding.android.FlutterActivity
 

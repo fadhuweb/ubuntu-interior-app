@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "893864659378",
+    "project_id": "ubuntu-interiors-1e073",
+    "storage_bucket": "ubuntu-interiors-1e073.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:893864659378:android:a663b233f6cc2414ca3cab",
+        "android_client_info": {
+          "package_name": "com.ubuntu.interiors"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "893864659378-65he70jk1dlao8tgq0r7gf4oi50b5ol6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC4QD5xYsDrbdcUZhRfVk7hY0Lbe0WOC9w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "893864659378-65he70jk1dlao8tgq0r7gf4oi50b5ol6.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
