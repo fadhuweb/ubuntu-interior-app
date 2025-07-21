@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:ubuntu_app/utils/colors.dart';
 import 'package:ubuntu_app/utils/text_styles.dart';
+import 'home_page.dart';
+import 'package:ubuntu_app/screens/artist/artist_home_page.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -17,6 +20,8 @@ class _SignUpPageState extends State<SignUpPage> {
   final TextEditingController portfolioController = TextEditingController(); // Artist
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+
+  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -42,11 +47,9 @@ class _SignUpPageState extends State<SignUpPage> {
                 style: TextStyle(fontSize: 16, color: Colors.grey[700]),
               ),
               const SizedBox(height: 32),
-
               _buildRoleSelector(),
               const SizedBox(height: 24),
 
-              // Conditional fields
               if (selectedRole == 'Customer')
                 _buildInput("Full Name", nameController, false),
               if (selectedRole == 'Artist') ...[
@@ -55,20 +58,17 @@ class _SignUpPageState extends State<SignUpPage> {
                 _buildInput("Portfolio URL", portfolioController, false),
               ],
               const SizedBox(height: 16),
-
               _buildInput("Email", emailController, false),
               const SizedBox(height: 16),
-
               _buildInput("Password", passwordController, true),
               const SizedBox(height: 32),
-
               _buildSignUpButton(),
               const SizedBox(height: 20),
 
               Center(
                 child: TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text(
+                  child: const Text(
                     "Already have an account? Login",
                     style: TextStyle(
                       color: Color(0xFF8C4A2F),
@@ -95,12 +95,12 @@ class _SignUpPageState extends State<SignUpPage> {
             label: Text(
               role,
               style: TextStyle(
-                color: isSelected ? Colors.white : Color(0xFFDF794E),
+                color: isSelected ? Colors.white : const Color(0xFFDF794E),
                 fontWeight: FontWeight.bold,
               ),
             ),
             selected: isSelected,
-            selectedColor: Color(0xFFDF805B),
+            selectedColor: const Color(0xFFDF805B),
             backgroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -118,7 +118,7 @@ class _SignUpPageState extends State<SignUpPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 6)],
+        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 6)],
       ),
       child: TextField(
         controller: controller,
@@ -136,34 +136,99 @@ class _SignUpPageState extends State<SignUpPage> {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: () {
-          String msg;
-          if (selectedRole == 'Customer') {
-            msg =
-            "Customer: ${nameController.text}, Email: ${emailController.text}";
-          } else {
-            msg =
-            "Artist: ${brandController.text}, Portfolio: ${portfolioController.text}, Email: ${emailController.text}";
-          }
-
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text("Signed up as $msg"),
-            backgroundColor: Color(0xFFCF7D5A),
-          ));
-        },
+        onPressed: _isLoading ? null : _handleSignUp,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Color(0xFFDD825D),
+          backgroundColor: const Color(0xFFDD825D),
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
           elevation: 6,
         ),
-        child: const Text(
-          "Sign Up",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
+        child: _isLoading
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              )
+            : const Text(
+                "Sign Up",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
       ),
     );
+  }
+
+  Future<void> _handleSignUp() async {
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      _showSnackbar("Please fill in all required fields", isError: true);
+      return;
+    }
+
+    if (selectedRole == 'Customer' && nameController.text.trim().isEmpty) {
+      _showSnackbar("Please enter your full name", isError: true);
+      return;
+    }
+
+    if (selectedRole == 'Artist' &&
+        (brandController.text.trim().isEmpty || portfolioController.text.trim().isEmpty)) {
+      _showSnackbar("Please complete all artist fields", isError: true);
+      return;
+    }
+
+    try {
+      setState(() => _isLoading = true);
+
+      final UserCredential userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(email: email, password: password);
+
+      // Optionally: store role or other info in Firestore
+
+      _showSnackbar("Account created successfully!", isError: false);
+
+      // Navigate based on role
+      if (selectedRole == 'Customer') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomePage()),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const ArtistHomePage()),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      _showSnackbar(e.message ?? "Signup failed", isError: true);
+    } catch (e) {
+      _showSnackbar("An unexpected error occurred", isError: true);
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _showSnackbar(String message, {required bool isError}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : const Color(0xFFCF7D5A),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    brandController.dispose();
+    portfolioController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
   }
 }

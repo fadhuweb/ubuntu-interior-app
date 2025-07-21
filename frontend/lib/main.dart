@@ -1,18 +1,18 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart'; // ✅ ADD THIS LINE
 import 'screens/splash_screen.dart';
-// import 'dev/sample_data_loader.dart'; // Uncomment if you use it
 
 void main() {
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
 
     print('🟡 Initializing Firebase...');
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform, // ✅ USE THIS
+    );
     print('✅ Firebase initialized.');
-
-    // await loadSampleData(); // Only if you have dev/test data to load
 
     runApp(const MyApp());
   }, (error, stackTrace) {
