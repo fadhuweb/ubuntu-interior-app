@@ -1,3 +1,4 @@
+import '../services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'signup_screen.dart';
 import 'home_page.dart';
@@ -224,17 +225,17 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
 // ---------------------- LOGIN PAGE ----------------------
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
-
-  @override
-  State<LoginPage> createState() => _LoginPageState();
-}
-
 class _LoginPageState extends State<LoginPage> {
+  final AuthService _authService = AuthService();
+
+  String selectedRole = 'Customer'; 
+
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  String selectedRole = 'Customer';
+
+  
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -349,35 +350,48 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _buildLoginButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: () {
-          if (selectedRole == 'Customer') {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const HomePage()),
-            );
-          } else {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const ArtistHomePage()),
-            );
-          }
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Color(0xFF8C4A2F),
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          elevation: 6,
+  return SizedBox(
+    width: double.infinity,
+    child: ElevatedButton(
+      onPressed: () async {
+        final email = emailController.text.trim();
+        final password = passwordController.text.trim();
+
+        if (email.isEmpty || password.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Please enter email and password")),
+          );
+          return;
+        }
+
+        final user = await _authService.login(email, password);
+        if (user != null) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) =>
+                  selectedRole == 'Customer' ? const HomePage() : const ArtistHomePage(),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Login failed")),
+          );
+        }
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF8C4A2F),
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
         ),
-        child: const Text(
-          "Login",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-        ),
+        elevation: 6,
       ),
-    );
-  }
+      child: const Text(
+        "Login",
+        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+      ),
+    ),
+  );
 }
+
