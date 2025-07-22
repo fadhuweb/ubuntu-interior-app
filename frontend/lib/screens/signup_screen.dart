@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ubuntu_app/utils/colors.dart';
 import 'package:ubuntu_app/utils/text_styles.dart';
 import 'home_page.dart';
@@ -15,13 +16,14 @@ class SignUpPage extends StatefulWidget {
 class _SignUpPageState extends State<SignUpPage> {
   String selectedRole = 'Customer';
 
-  final TextEditingController nameController = TextEditingController(); // Customer
-  final TextEditingController brandController = TextEditingController(); // Artist
-  final TextEditingController portfolioController = TextEditingController(); // Artist
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController brandController = TextEditingController();
+  final TextEditingController portfolioController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
   bool _isLoading = false;
+  bool _obscurePassword = true; // 👈 Added
 
   @override
   Widget build(BuildContext context) {
@@ -60,11 +62,10 @@ class _SignUpPageState extends State<SignUpPage> {
               const SizedBox(height: 16),
               _buildInput("Email", emailController, false),
               const SizedBox(height: 16),
-              _buildInput("Password", passwordController, true),
+              _buildPasswordInput(), // 👈 New widget with toggle
               const SizedBox(height: 32),
               _buildSignUpButton(),
               const SizedBox(height: 20),
-
               Center(
                 child: TextButton(
                   onPressed: () => Navigator.pop(context),
@@ -132,6 +133,36 @@ class _SignUpPageState extends State<SignUpPage> {
     );
   }
 
+  Widget _buildPasswordInput() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 6)],
+      ),
+      child: TextField(
+        controller: passwordController,
+        obscureText: _obscurePassword,
+        decoration: InputDecoration(
+          hintText: "Password",
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          suffixIcon: IconButton(
+            icon: Icon(
+              _obscurePassword ? Icons.visibility_off : Icons.visibility,
+              color: Colors.grey,
+            ),
+            onPressed: () {
+              setState(() {
+                _obscurePassword = !_obscurePassword;
+              });
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildSignUpButton() {
     return SizedBox(
       width: double.infinity,
@@ -185,24 +216,27 @@ class _SignUpPageState extends State<SignUpPage> {
     try {
       setState(() => _isLoading = true);
 
-      final UserCredential userCredential = await FirebaseAuth.instance
+      final userCredential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(email: email, password: password);
 
-      // Optionally: store role or other info in Firestore
+      final uid = userCredential.user!.uid;
+
+      await FirebaseFirestore.instance.collection('users').doc(uid).set({
+        'role': selectedRole.toLowerCase(),
+        'email': email,
+        'name': selectedRole == 'Customer'
+            ? nameController.text.trim()
+            : brandController.text.trim(),
+        'portfolio': selectedRole == 'Artist' ? portfolioController.text.trim() : null,
+        'createdAt': Timestamp.now(),
+      });
 
       _showSnackbar("Account created successfully!", isError: false);
 
-      // Navigate based on role
       if (selectedRole == 'Customer') {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const HomePage()),
-        );
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
       } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const ArtistHomePage()),
-        );
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ArtistHomePage()));
       }
     } on FirebaseAuthException catch (e) {
       _showSnackbar(e.message ?? "Signup failed", isError: true);

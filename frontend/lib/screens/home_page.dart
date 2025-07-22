@@ -2,12 +2,31 @@ import 'package:flutter/material.dart';
 import 'package:ubuntu_app/utils/colors.dart';
 import 'package:ubuntu_app/utils/text_styles.dart';
 
-import 'product_page.dart'; // <-- New import
+import 'all_products_page.dart'; // <-- Ensure this file exists
 import 'cart_page.dart' as cart;
 import 'settings_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
+
+  final List<Map<String, String>> categories = const [
+    {
+      'title': 'Textiles',
+      'image': 'https://images.pexels.com/photos/31730273/pexels-photo-31730273.jpeg',
+    },
+    {
+      'title': 'Pottery',
+      'image': 'https://images.unsplash.com/photo-1586201375761-83865001e17b',
+    },
+    {
+      'title': 'Ceramics',
+      'image': 'https://images.unsplash.com/photo-1578662996442-48f60103fc96',
+    },
+    {
+      'title': 'Art',
+      'image': 'https://images.unsplash.com/photo-1541961017774-22349e4a1262',
+    },
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -91,47 +110,22 @@ class HomePage extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
 
-                    Row(
-                      children: [
-                        Expanded(
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: categories.map((category) {
+                        return SizedBox(
+                          width: (MediaQuery.of(context).size.width / 2) - 30,
                           child: _buildCategoryCard(
-                            'Textiles',
-                            'https://images.pexels.com/photos/31730273/pexels-photo-31730273.jpeg',
+                            category['title']!,
+                            category['image']!,
                             context,
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildCategoryCard(
-                            'Pottery',
-                            'https://images.unsplash.com/photo-1586201375761-83865001e17b',
-                            context,
-                          ),
-                        ),
-                      ],
+                        );
+                      }).toList(),
                     ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildCategoryCard(
-                            'Ceramics',
-                            'https://images.unsplash.com/photo-1578662996442-48f60103fc96',
-                            context,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildCategoryCard(
-                            'Art',
-                            'https://images.unsplash.com/photo-1541961017774-22349e4a1262',
-                            context,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 32),
 
+                    const SizedBox(height: 32),
                     const Text(
                       'Featured Product',
                       style: TextStyle(
@@ -141,7 +135,6 @@ class HomePage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-
                     _buildFeaturedProduct(context),
                     const SizedBox(height: 32),
                   ],
@@ -151,12 +144,9 @@ class HomePage extends StatelessWidget {
           ),
         ),
       ),
-
-      // Bottom Navigation Bar
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: 0,
         onTap: (index) {
-          if (index == 0) return;
           if (index == 1) {
             Navigator.push(
               context,
@@ -185,7 +175,7 @@ class HomePage extends StatelessWidget {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const AllProductsPage()),
+          MaterialPageRoute(builder: (_) => AllProductsPage(category: title)),
         );
       },
       child: Container(
@@ -248,7 +238,7 @@ class HomePage extends StatelessWidget {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const AllProductsPage()),
+          MaterialPageRoute(builder: (_) => const AllProductsPage(category: 'Textiles')),
         );
       },
       child: Container(
@@ -274,96 +264,36 @@ class HomePage extends StatelessWidget {
                   width: 80,
                   height: 80,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      width: 80,
-                      height: 80,
-                      color: Colors.grey[200],
-                      child: const Icon(
-                        Icons.image_not_supported,
-                        color: Colors.grey,
-                        size: 30,
-                      ),
-                    );
-                  },
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Expanded(
-                          child: Text(
-                            'Luxurious Kente',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF2D2D2D),
-                            ),
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.orangeAccent,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Text(
-                            'Best Seller',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 10,
-                            ),
-                          ),
-                        ),
-                      ],
+                  children: const [
+                    Text(
+                      'Luxurious Kente',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2D2D2D),
+                      ),
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     Text(
                       'Handwoven traditional Kente cloth with intricate patterns',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Text(
-                          '\$45.00',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.green,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '\$60.00',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[500],
-                            decoration: TextDecoration.lineThrough,
-                          ),
-                        ),
-                        const Spacer(),
-                        Row(
-                          children: [
-                            Icon(Icons.star, color: Colors.amber.shade600, size: 16),
-                            const SizedBox(width: 4),
-                            Text(
-                              '4.8 (127)',
-                              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                            ),
-                          ],
-                        ),
-                      ],
+                    SizedBox(height: 8),
+                    Text(
+                      '\$45.00',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green,
+                      ),
                     ),
                   ],
                 ),

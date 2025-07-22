@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'signup_screen.dart';
 import 'home_page.dart';
 import 'package:ubuntu_app/screens/artist/artist_home_page.dart';
@@ -15,8 +16,8 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  String selectedRole = 'Customer';
   bool _isLoading = false;
+  bool _obscurePassword = true; // 👈 NEW
 
   @override
   Widget build(BuildContext context) {
@@ -42,11 +43,9 @@ class _LoginPageState extends State<LoginPage> {
                 style: TextStyle(fontSize: 16, color: Colors.grey[700]),
               ),
               const SizedBox(height: 32),
-              _buildRoleSelector(),
-              const SizedBox(height: 24),
               _buildInput("Email", emailController, false),
               const SizedBox(height: 20),
-              _buildInput("Password", passwordController, true),
+              _buildPasswordInput(),
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
@@ -86,35 +85,6 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildRoleSelector() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: ['Customer', 'Artist'].map((role) {
-        final isSelected = selectedRole == role;
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: ChoiceChip(
-            label: Text(
-              role,
-              style: TextStyle(
-                color: isSelected ? Colors.white : const Color(0xFF8C4A2F),
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            selected: isSelected,
-            selectedColor: const Color(0xFF8C4A2F),
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: const BorderSide(color: Color(0xFF8C4A2F)),
-            ),
-            onSelected: (_) => setState(() => selectedRole = role),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
   Widget _buildInput(String label, TextEditingController controller, bool isPassword) {
     return Container(
       decoration: BoxDecoration(
@@ -129,6 +99,36 @@ class _LoginPageState extends State<LoginPage> {
           hintText: label,
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPasswordInput() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 6)],
+      ),
+      child: TextField(
+        controller: passwordController,
+        obscureText: _obscurePassword,
+        decoration: InputDecoration(
+          hintText: "Password",
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          suffixIcon: IconButton(
+            icon: Icon(
+              _obscurePassword ? Icons.visibility_off : Icons.visibility,
+              color: Colors.grey,
+            ),
+            onPressed: () {
+              setState(() {
+                _obscurePassword = !_obscurePassword;
+              });
+            },
+          ),
         ),
       ),
     );
@@ -173,20 +173,28 @@ class _LoginPageState extends State<LoginPage> {
     try {
       setState(() => _isLoading = true);
 
-      await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: password);
+      final userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: email, password: password);
+
+      final uid = userCredential.user?.uid;
+      if (uid == null) throw Exception("User not found.");
+
+      final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      final role = doc.data()?['role'];
+
+      if (role == null) throw Exception("User role not found in Firestore.");
 
       _showSnackbar("Login successful!", isError: false);
 
-      // Navigate based on role
-      if (selectedRole == 'Customer') {
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
-      } else {
+      if (role == 'artist') {
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ArtistHomePage()));
+      } else {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
       }
     } on FirebaseAuthException catch (e) {
       _showSnackbar(e.message ?? "Login failed", isError: true);
     } catch (e) {
-      _showSnackbar("An unexpected error occurred", isError: true);
+      _showSnackbar("Login error: ${e.toString()}", isError: true);
     } finally {
       setState(() => _isLoading = false);
     }
