@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart'; // ✅ ADD THIS LINE
 import 'screens/splash_screen.dart';
+import 'screens/payment_screen.dart';
+
 
 void main() {
   runZonedGuarded(() async {
@@ -32,7 +34,7 @@ class MyApp extends StatelessWidget {
       title: 'Ubuntu Interiors',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.brown),
-      home: const SplashScreen(),
+      home: const PaymentScreen(), // Temporary for testing
     );
   }
 }
