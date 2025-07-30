@@ -3,7 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'privacy_page.dart';
 
 class HelpPage extends StatelessWidget {
-  const HelpPage({Key? key}) : super(key: key);
+  const HelpPage({super.key});
 
   @override
   Widget build(BuildContext context) {

@@ -100,7 +100,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
         width: 80,
         height: 80,
         decoration: BoxDecoration(
-          color: const Color(0xFF8C4A2F).withOpacity(0.1),
+          color: const Color(0xFF8C4A2F).withValues(alpha: 26),
           shape: BoxShape.circle,
         ),
         child: const Icon(Icons.lock_reset, size: 40, color: Color(0xFF8C4A2F)),
@@ -250,6 +250,8 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
         await FirebaseAuth.instance
             .sendPasswordResetEmail(email: emailController.text.trim());
 
+        if (!mounted) return;
+
         setState(() {
           _isLoading = false;
           _emailSent = true;
@@ -262,6 +264,8 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
           ),
         );
       } on FirebaseAuthException catch (e) {
+        if (!mounted) return;
+
         setState(() => _isLoading = false);
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -289,6 +293,8 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
       await FirebaseAuth.instance.signInWithCredential(credential);
 
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text("Signed in with Google successfully!"),
         backgroundColor: Colors.green,
@@ -296,6 +302,8 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
       setState(() => currentUser = FirebaseAuth.instance.currentUser);
     } catch (e) {
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text("Google Sign-In failed: $e"),
         backgroundColor: Colors.red,
@@ -306,11 +314,16 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
   Future<void> _sendEmailVerification() async {
     try {
       await FirebaseAuth.instance.currentUser?.sendEmailVerification();
+
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text("Verification email sent."),
         backgroundColor: Colors.blue,
       ));
     } catch (e) {
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text("Failed to send verification email: $e"),
         backgroundColor: Colors.red,

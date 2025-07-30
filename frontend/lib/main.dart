@@ -8,16 +8,16 @@ void main() {
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
 
-    print('🟡 Initializing Firebase...');
+    debugPrint('🟡 Initializing Firebase...');
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform, // ✅ USE THIS
     );
-    print('✅ Firebase initialized.');
+    debugPrint('✅ Firebase initialized.');
 
     runApp(const MyApp());
   }, (error, stackTrace) {
-    print('❌ Caught error in main(): $error');
-    print('🧠 Stack trace:\n$stackTrace');
+    debugPrint('❌ Caught error in main(): $error');
+    debugPrint('🧠 Stack trace:\n$stackTrace');
   });
 }
 
@@ -26,7 +26,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print('🚀 Building MyApp widget...');
+    debugPrint('🚀 Building MyApp widget...');
     return MaterialApp(
       title: 'Ubuntu Interiors',
       debugShowCheckedModeBanner: false,

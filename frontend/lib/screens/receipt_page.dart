@@ -39,11 +39,13 @@ class _ReceiptPageState extends State<ReceiptPage> {
         };
       }).toList();
 
+      if (!mounted) return;
       setState(() {
         items = fetchedItems;
         loading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         loading = false;
       });
@@ -124,7 +126,7 @@ class _ReceiptPageState extends State<ReceiptPage> {
                         ],
                       ),
                     );
-                  }).toList(),
+                  }),
 
                   const SizedBox(height: 12),
                   Row(

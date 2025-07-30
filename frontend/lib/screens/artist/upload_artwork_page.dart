@@ -22,17 +22,17 @@ class _UploadArtworkPageState extends State<UploadArtworkPage> {
   bool _isUploading = false;
 
   final List<String> _categories = [
-  'Textile',
-  'Ceramic',
-  'Pottery',
-  'Art',
-];
-
+    'Textile',
+    'Ceramic',
+    'Pottery',
+    'Art',
+  ];
 
   String _selectedCategory = 'Textile';
 
   Future<void> _pickImage() async {
-    final pickedImage = await ImagePicker().pickImage(source: ImageSource.gallery);
+    final pickedImage =
+        await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedImage != null) {
       setState(() => _imageFile = File(pickedImage.path));
     }
@@ -40,16 +40,24 @@ class _UploadArtworkPageState extends State<UploadArtworkPage> {
 
   Future<void> _uploadArtwork() async {
     if (!_formKey.currentState!.validate() || _imageFile == null) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Fill all fields and select an image.'), backgroundColor: Colors.red),
+        const SnackBar(
+          content: Text('Fill all fields and select an image.'),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
 
     final price = double.tryParse(_priceController.text);
     if (price == null) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter a valid price.'), backgroundColor: Colors.red),
+        const SnackBar(
+          content: Text('Enter a valid price.'),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
@@ -81,13 +89,18 @@ class _UploadArtworkPageState extends State<UploadArtworkPage> {
         'createdAt': Timestamp.now(),
       });
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Artwork uploaded successfully!'), backgroundColor: Colors.green),
+        const SnackBar(
+          content: Text('Artwork uploaded successfully!'),
+          backgroundColor: Colors.green,
+        ),
       );
 
       _titleController.clear();
       _descriptionController.clear();
       _priceController.clear();
+
       setState(() {
         _imageFile = null;
         _selectedCategory = 'Uncategorized';
@@ -97,8 +110,12 @@ class _UploadArtworkPageState extends State<UploadArtworkPage> {
       Navigator.pop(context);
     } catch (e) {
       setState(() => _isUploading = false);
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Upload failed: $e'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text('Upload failed: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -114,7 +131,10 @@ class _UploadArtworkPageState extends State<UploadArtworkPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Upload Artwork'), backgroundColor: Colors.deepPurple),
+      appBar: AppBar(
+        title: const Text('Upload Artwork'),
+        backgroundColor: Colors.deepPurple,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: SingleChildScrollView(
@@ -132,11 +152,19 @@ class _UploadArtworkPageState extends State<UploadArtworkPage> {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.grey),
                       image: _imageFile != null
-                          ? DecorationImage(image: FileImage(_imageFile!), fit: BoxFit.cover)
+                          ? DecorationImage(
+                              image: FileImage(_imageFile!),
+                              fit: BoxFit.cover,
+                            )
                           : null,
                     ),
                     child: _imageFile == null
-                        ? const Center(child: Text('Tap to select image', style: TextStyle(color: Colors.grey)))
+                        ? const Center(
+                            child: Text(
+                              'Tap to select image',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          )
                         : null,
                   ),
                 ),
@@ -145,7 +173,8 @@ class _UploadArtworkPageState extends State<UploadArtworkPage> {
                 const SizedBox(height: 16),
                 _buildInput(_descriptionController, 'Description', maxLines: 3),
                 const SizedBox(height: 16),
-                _buildInput(_priceController, 'Price', keyboardType: TextInputType.number),
+                _buildInput(_priceController, 'Price',
+                    keyboardType: TextInputType.number),
                 const SizedBox(height: 16),
                 _buildCategoryDropdown(),
                 const SizedBox(height: 24),
@@ -156,7 +185,9 @@ class _UploadArtworkPageState extends State<UploadArtworkPage> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.deepPurple,
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     child: _isUploading
                         ? const CircularProgressIndicator(color: Colors.white)
@@ -198,7 +229,8 @@ class _UploadArtworkPageState extends State<UploadArtworkPage> {
       controller: controller,
       maxLines: maxLines,
       keyboardType: keyboardType,
-      validator: (value) => value == null || value.isEmpty ? 'Please enter $label' : null,
+      validator: (value) =>
+          value == null || value.isEmpty ? 'Please enter $label' : null,
       decoration: InputDecoration(
         labelText: label,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),

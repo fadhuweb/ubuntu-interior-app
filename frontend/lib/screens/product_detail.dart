@@ -32,14 +32,16 @@ class ProductDetailPage extends StatelessWidget {
     }
   }
 
-  // Add to cart logic (with FIX: use 'title' field consistently)
+  // Add to cart logic with context safety
   Future<void> addToCart(BuildContext context) async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Please log in to add to cart")),
-        );
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Please log in to add to cart")),
+          );
+        }
         return;
       }
 
@@ -50,7 +52,7 @@ class ProductDetailPage extends StatelessWidget {
 
       // Check if item already exists by title
       final existing = await cartRef
-          .where('title', isEqualTo: title) // ✅ FIXED: consistent field name
+          .where('title', isEqualTo: title)
           .limit(1)
           .get();
 
@@ -60,7 +62,7 @@ class ProductDetailPage extends StatelessWidget {
         await cartRef.doc(doc.id).update({'quantity': currentQty + 1});
       } else {
         await cartRef.add({
-          'title': title, // ✅ FIXED: use 'title'
+          'title': title,
           'artistId': artist,
           'description': description,
           'imageUrl': imageUrl,
@@ -70,13 +72,17 @@ class ProductDetailPage extends StatelessWidget {
         });
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Added to cart")),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Added to cart")),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to add to cart: $e")),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to add to cart: $e")),
+        );
+      }
     }
   }
 

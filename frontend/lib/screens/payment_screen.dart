@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutterwave_standard/flutterwave.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -21,12 +20,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
   bool _isProcessing = false;
 
   final _formKey = GlobalKey<FormState>();
-
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _addressController = TextEditingController();
 
-  String? _userEmail;
+  late final String _userEmail;
   String _selectedCurrency = 'USD';
 
   static const Map<String, double> _currencyRates = {
@@ -37,7 +35,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     'GHS': 15.0,
   };
 
-  double get convertedTotal => widget.totalPrice * _currencyRates[_selectedCurrency]!;
+  double get convertedTotal => widget.totalPrice * (_currencyRates[_selectedCurrency] ?? 1.0);
 
   @override
   void initState() {
@@ -72,69 +70,54 @@ class _PaymentScreenState extends State<PaymentScreen> {
     }
   }
 
-  Future<void> _makePayment(BuildContext context) async {
-    try {
-      print("🚀 Entered _makePayment");
+  Future<void> _makePayment() async {
+  if (!_formKey.currentState!.validate()) return;
 
-      if (!_formKey.currentState!.validate()) return;
+  final user = FirebaseAuth.instance.currentUser;
+  // ignore: unnecessary_null_comparison
+  if (user == null) return;
 
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
+  final name = _nameController.text.trim();
+  final phone = _phoneController.text.trim();
+  final address = _addressController.text.trim();
 
-      final name = _nameController.text.trim();
-      final phone = _phoneController.text.trim();
-      final address = _addressController.text.trim();
+  setState(() => _isProcessing = true);
 
-      setState(() => _isProcessing = true);
+  final txRef = "ubuntu-${DateTime.now().millisecondsSinceEpoch}";
+  final customer = Customer(name: name, phoneNumber: phone, email: _userEmail);
 
-      final txRef = "ubuntu-${DateTime.now().millisecondsSinceEpoch}";
+  final flutterwave = Flutterwave(
+    publicKey: "FLWPUBK_TEST-19f3dd4a1e7083069f25a0d8eaea06f0-X",
+    currency: _selectedCurrency,
+    amount: convertedTotal.toStringAsFixed(2),
+    txRef: txRef,
+    redirectUrl: "https://www.google.com",
+    customer: customer,
+    paymentOptions: "card,mobilemoneyrwanda",
+    customization: Customization(title: "Ubuntu Interiors Payment"),
+    isTestMode: true,
+  );
 
-      final customer = Customer(
-        name: name,
-        phoneNumber: phone,
-        email: _userEmail!,
-      );
+  final response = await flutterwave.charge(context);
 
-      final flutterwave = Flutterwave(
-        publicKey: "FLWPUBK_TEST-19f3dd4a1e7083069f25a0d8eaea06f0-X",
-        currency: _selectedCurrency,
-        amount: convertedTotal.toStringAsFixed(2),
-        txRef: txRef,
-        redirectUrl: "https://www.google.com",
-        customer: customer,
-        paymentOptions: "card,mobilemoneyrwanda",
-        customization: Customization(title: "Ubuntu Interiors Payment"),
-        isTestMode: true,
-      );
+  if (!mounted) return;
 
-      final ChargeResponse? response = await flutterwave.charge(context);
-
-      print("📝 Flutterwave Response: ${response?.toJson()}");
-      print("✅ Response success: ${response?.success}, status: ${response?.status}");
-
-      if (response != null && response.status == 'successful') {
-        print("✅ Payment success confirmed. Proceeding to place order...");
-        await _placeOrder(context, user.uid, txRef, name, phone, address);
-      } else if (response == null) {
-        _showSnackBar(context, "Payment cancelled", Colors.orange);
-      } else {
-        _showSnackBar(context, "Payment failed: ${response.status}", Colors.red);
-      }
-
-      setState(() => _isProcessing = false);
-    } catch (e, stack) {
-      print("❌ Error in _makePayment: $e\n$stack");
-      _showSnackBar(context, "Unexpected error: $e", Colors.red);
-      setState(() => _isProcessing = false);
-    }
+  if (response == null) {
+    _showSnackBar("Payment cancelled", Colors.orange);
+  } else if (response.status == 'successful') {
+    await _placeOrder(user.uid, txRef, name, phone, address);
+  } else {
+    _showSnackBar("Payment failed: ${response.status}", Colors.red);
   }
 
- Future<void> _placeOrder(BuildContext context, String userId, String txRef, String name, String phone, String address) async {
-  print("🛒 Starting order placement");
+  if (mounted) {
+    setState(() => _isProcessing = false);
+  }
+}
 
-  final orderRef = FirebaseFirestore.instance.collection('orders').doc();
+  Future<void> _placeOrder(String userId, String txRef, String name, String phone, String address) async {
+    final orderRef = FirebaseFirestore.instance.collection('orders').doc();
 
-  try {
     final items = widget.cartItems.map((item) => {
       'artworkId': item['id'],
       'title': item['title'],
@@ -144,78 +127,59 @@ class _PaymentScreenState extends State<PaymentScreen> {
       'status': 'Pending',
     }).toList();
 
-    final artistIds = widget.cartItems
-        .map((item) => item['artistId'])
-        .toSet()
-        .toList();
+    final artistIds = widget.cartItems.map((item) => item['artistId']).toSet().toList();
 
-    print("🧾 Writing order to Firestore...");
-    await orderRef.set({
-      'userId': userId,
-      'items': items,
-      'artistIds': artistIds,
-      'total': widget.totalPrice,
-      'paymentRef': txRef,
-      'paymentStatus': 'success',
-      'date': FieldValue.serverTimestamp(),
-      'currency': _selectedCurrency,
-      'convertedTotal': convertedTotal,
-      'shipping': {
-        'recipient': name,
-        'phone': phone,
-        'address': address,
-      },
-      'status': 'Pending',
-    });
-    print("✅ Order written");
-
-    // ✅ Add itemStatus subcollection per item (important for artist views)
-    print("🧩 Creating itemStatus documents...");
-    for (final item in items) {
-      await orderRef.collection('itemStatus').add({
-        'artworkId': item['artworkId'],
-        'title': item['title'],
-        'quantity': item['quantity'],
-        'artistId': item['artistId'],
+    try {
+      await orderRef.set({
+        'userId': userId,
+        'items': items,
+        'artistIds': artistIds,
+        'total': widget.totalPrice,
+        'paymentRef': txRef,
+        'paymentStatus': 'success',
+        'date': FieldValue.serverTimestamp(),
+        'currency': _selectedCurrency,
+        'convertedTotal': convertedTotal,
+        'shipping': {
+          'recipient': name,
+          'phone': phone,
+          'address': address,
+        },
         'status': 'Pending',
       });
-    }
-    print("✅ itemStatus subcollection created");
 
-    final cartCollection = FirebaseFirestore.instance.collection('users').doc(userId).collection('cart');
-    final cartDocs = await cartCollection.get();
-
-    print("🗑️ Deleting cart items...");
-    for (var doc in cartDocs.docs) {
-      try {
-        await doc.reference.delete();
-        print("🗑️ Deleted cart item: ${doc.id}");
-      } catch (e) {
-        print("❌ Failed to delete cart item ${doc.id}: $e");
+      for (final item in items) {
+        await orderRef.collection('itemStatus').add({
+          'artworkId': item['artworkId'],
+          'title': item['title'],
+          'quantity': item['quantity'],
+          'artistId': item['artistId'],
+          'status': 'Pending',
+        });
       }
+
+      final cartCollection = FirebaseFirestore.instance.collection('users').doc(userId).collection('cart');
+      final cartDocs = await cartCollection.get();
+
+      for (var doc in cartDocs.docs) {
+        await doc.reference.delete();
+      }
+
+      _showSnackBar("Payment & order successful!", Colors.green);
+
+      await Future.delayed(const Duration(milliseconds: 600));
+      if (!mounted) return;
+
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const HomePage()),
+        (route) => false,
+      );
+    } catch (e) {
+      _showSnackBar("Order error: $e", Colors.red);
     }
-    print("✅ Cart cleared");
-
-    _showSnackBar(context, "Payment & order successful!", Colors.green);
-
-    await Future.delayed(const Duration(milliseconds: 600));
-    if (!mounted) return;
-
-    print("🚀 Redirecting to HomePage...");
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const HomePage()),
-      (route) => false,
-    );
-  } catch (e, stack) {
-    print("❌ Order error: $e");
-    print("🔍 Stack trace: $stack");
-    _showSnackBar(context, "Order error: ${e.toString()}", Colors.red);
   }
-}
 
-
-
-  void _showSnackBar(BuildContext context, String message, Color color) {
+  void _showSnackBar(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: color),
     );
@@ -343,7 +307,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     if (_currentStep < 2) {
                       _nextStep();
                     } else {
-                      _makePayment(context);
+                      _makePayment();
                     }
                   },
             style: ElevatedButton.styleFrom(

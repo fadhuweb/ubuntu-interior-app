@@ -1,10 +1,7 @@
-// All your imports remain unchanged
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:ubuntu_app/utils/colors.dart';
-import 'package:ubuntu_app/utils/text_styles.dart';
 import 'home_page.dart';
 import 'package:ubuntu_app/screens/artist/artist_home_page.dart';
 
@@ -45,7 +42,7 @@ class _SignUpPageState extends State<SignUpPage> {
                   )),
               const SizedBox(height: 8),
               Text(
-                "Sign up as a \${selectedRole.toLowerCase()} to get started.",
+                "Sign up as a ${selectedRole.toLowerCase()} to get started.",
                 style: TextStyle(fontSize: 16, color: Colors.grey[700]),
               ),
               const SizedBox(height: 32),
@@ -223,16 +220,24 @@ class _SignUpPageState extends State<SignUpPage> {
 
       final userCredential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(email: email, password: password);
-      final user = userCredential.user!;
 
+      if (!mounted) return;
+
+      final user = userCredential.user!;
       await user.sendEmailVerification();
+
+      if (!mounted) return;
       _showEmailVerificationDialog(user, email);
     } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
       _showSnackbar(e.message ?? "Signup failed", isError: true);
     } catch (e) {
+      if (!mounted) return;
       _showSnackbar("An unexpected error occurred", isError: true);
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -263,9 +268,11 @@ class _SignUpPageState extends State<SignUpPage> {
                   'createdAt': Timestamp.now(),
                 });
 
+                if (!mounted) return;
                 Navigator.of(context).pop(); // Close dialog
                 _navigateAfterLogin();
               } else {
+                if (!mounted) return;
                 _showSnackbar("Email not verified yet", isError: true);
               }
             },
@@ -290,6 +297,8 @@ class _SignUpPageState extends State<SignUpPage> {
 
       final googleAuth = await googleUser.authentication;
 
+      if (!mounted) return;
+
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
@@ -297,6 +306,9 @@ class _SignUpPageState extends State<SignUpPage> {
 
       final userCredential =
           await FirebaseAuth.instance.signInWithCredential(credential);
+
+      if (!mounted) return;
+
       final user = userCredential.user!;
       final uid = user.uid;
 
@@ -311,11 +323,15 @@ class _SignUpPageState extends State<SignUpPage> {
         });
       }
 
+      if (!mounted) return;
       _navigateAfterLogin();
     } catch (e) {
+      if (!mounted) return;
       _showSnackbar("Google sign-in failed", isError: true);
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 

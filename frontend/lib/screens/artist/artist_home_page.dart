@@ -60,7 +60,7 @@ class ArtistHomePage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                          color: Colors.deepOrange.withOpacity(0.3),
+                          color: Colors.deepOrange.withAlpha(77),
                           blurRadius: 12)
                     ],
                   ),
@@ -82,7 +82,7 @@ class ArtistHomePage extends StatelessWidget {
                             const SizedBox(height: 8),
                             Text('Ready to create something amazing?',
                                 style: TextStyle(
-                                    color: Colors.white.withOpacity(0.9))),
+                                    color: Colors.white.withAlpha(230))),
                           ],
                         ),
                       ),
@@ -198,7 +198,7 @@ class ArtistHomePage extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 12)
+          BoxShadow(color: Colors.black.withAlpha(20), blurRadius: 12)
         ],
       ),
       child: Column(

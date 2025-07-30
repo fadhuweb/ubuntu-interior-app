@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:ubuntu_app/utils/colors.dart';
-import 'package:ubuntu_app/utils/text_styles.dart';
-
 import 'all_products_page.dart'; // <-- Ensure this file exists
 import 'cart_page.dart' as cart;
 import 'settings_page.dart';
@@ -69,7 +66,7 @@ class HomePage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(25),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withAlpha(26),
                             blurRadius: 5,
                             offset: const Offset(0, 2),
                           ),
@@ -185,7 +182,7 @@ class HomePage extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withAlpha(20),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -247,7 +244,7 @@ class HomePage extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withAlpha(20),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),

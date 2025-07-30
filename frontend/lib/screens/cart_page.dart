@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'home_page.dart';
-import 'payment_screen.dart'; // ✅ Import your payment screen
+import 'payment_screen.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
@@ -83,10 +83,10 @@ class _CartPageState extends State<CartPage> {
             };
           }).toList();
 
-          final totalItems = cartItems.fold<int>(0, (sum, item) => sum + (item['quantity'] as int));
+          final totalItems = cartItems.fold<int>(0, (acc, item) => acc + (item['quantity'] as int));
           final totalPrice = cartItems.fold<double>(
             0,
-            (sum, item) => sum + (item['price'] as double) * (item['quantity'] as int),
+            (acc, item) => acc + (item['price'] as double) * (item['quantity'] as int),
           );
 
           return Column(
@@ -186,7 +186,6 @@ class _CartPageState extends State<CartPage> {
                         const SizedBox(width: 16),
                         Expanded(
                           child: ElevatedButton(
-                            // ✅ Navigates to payment screen and passes data
                             onPressed: () {
                               Navigator.push(
                                 context,

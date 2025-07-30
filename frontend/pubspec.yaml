@@ -22,15 +22,15 @@ dependencies:
   firebase_storage: ^12.4.10
   google_sign_in: ^6.1.4
   flutterwave_standard: ^1.1.0
+  shared_preferences: ^2.5.3
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
-  shared_preferences: ^2.5.3
   provider: ^6.1.5
 
 flutter:
-  uses-material-design: true
+  uses-material-design: true  
   assets:
     - assets/google_logo.png

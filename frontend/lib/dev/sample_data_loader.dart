@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
+
 
 Future<void> loadSampleData() async {
   final FirebaseFirestore db = FirebaseFirestore.instance;
@@ -48,5 +50,5 @@ Future<void> loadSampleData() async {
     'createdAt': Timestamp.now(),
   });
 
-  print('Sample data added successfully');
+  debugPrint('Sample data added successfully');
 }

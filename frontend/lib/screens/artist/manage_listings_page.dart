@@ -135,13 +135,15 @@ class ManageListingsPage extends StatelessWidget {
                 final newDesc = descController.text.trim();
                 final newPrice = double.tryParse(priceController.text.trim()) ?? 0;
 
-                await FirebaseFirestore.instance.collection('artworks').doc(docId).update({
-                  'title': newTitle,
-                  'description': newDesc,
-                  'price': newPrice,
-                });
+               await FirebaseFirestore.instance.collection('artworks').doc(docId).update({
+  'title': newTitle,
+  'description': newDesc,
+  'price': newPrice,
+});
 
-                Navigator.pop(context);
+if (!context.mounted) return;
+Navigator.pop(context);
+
               },
             ),
             const SizedBox(height: 16),

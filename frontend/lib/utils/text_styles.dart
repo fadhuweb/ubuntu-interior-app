@@ -62,5 +62,5 @@ class AppTextStyles {
     fontWeight: FontWeight.bold,
   );
 
-  static var appBarTitle;
+  static TextStyle? appBarTitle; 
 }
