@@ -1,26 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'receipt_page.dart';
 
 class OrderHistoryPage extends StatelessWidget {
   const OrderHistoryPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final List<Map<String, dynamic>> orders = [
-      {
-        'title': 'Kente Cushion',
-        'date': 'July 28, 2025',
-        'status': 'Delivered',
-        'payment': 'Mobile Money',
-        'total': 45.99
-      },
-      {
-        'title': 'Ceramic Vase',
-        'date': 'July 25, 2025',
-        'status': 'In Transit',
-        'payment': 'Visa',
-        'total': 34.50
-      },
-    ];
+    final String userId = FirebaseAuth.instance.currentUser!.uid;
 
     return Scaffold(
       appBar: AppBar(
@@ -28,102 +16,133 @@ class OrderHistoryPage extends StatelessWidget {
         backgroundColor: Colors.brown.shade700,
         elevation: 0,
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: orders.length,
-        itemBuilder: (context, index) {
-          final order = orders[index];
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('orders')
+            .where('userId', isEqualTo: userId)
+            .orderBy('date', descending: true)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-          return Card(
-            elevation: 5,
-            margin: const EdgeInsets.only(bottom: 20),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        backgroundColor: Colors.brown.shade100,
-                        child: Icon(Icons.shopping_bag, color: Colors.brown.shade700),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(order['title'],
-                                style: const TextStyle(
-                                    fontSize: 18, fontWeight: FontWeight.bold)),
-                            Text('Ordered on ${order['date']}'),
-                          ],
-                        ),
-                      ),
-                      _buildStatusChip(order['status']),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _buildPaymentRow(order['payment']),
-                      Text('\$${order['total'].toStringAsFixed(2)}',
-                          style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  const Divider(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      if (order['status'] != 'Delivered')
-                        TextButton.icon(
-                          onPressed: () => _showMessage(context, 'Tracking order...'),
-                          icon: const Icon(Icons.local_shipping),
-                          label: const Text('Track'),
-                        ),
-                      TextButton.icon(
-                        onPressed: () => _showMessage(context, 'Showing receipt for ${order['title']}'),
-                        icon: const Icon(Icons.receipt_long),
-                        label: const Text('Receipt'),
-                      ),
-                      if (order['status'] == 'Delivered')
-                        ElevatedButton(
-                          onPressed: () => _showMessage(context, 'Thanks for rating!'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.brown.shade700,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: const Text('Rate'),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text("No orders yet."));
+          }
+
+          final orders = snapshot.data!.docs;
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: orders.length,
+            itemBuilder: (context, index) {
+              final orderDoc = orders[index];
+              final order = orderDoc.data() as Map<String, dynamic>;
+
+              // ✅ Add Firestore doc ID as orderId
+              final fullOrderData = {
+                ...order,
+                'orderId': orderDoc.id,
+              };
+
+              return FutureBuilder<QuerySnapshot>(
+                future: FirebaseFirestore.instance
+                    .collection('orders')
+                    .doc(orderDoc.id)
+                    .collection('itemStatus')
+                    .get(),
+                builder: (context, itemSnapshot) {
+                  final itemStatus = itemSnapshot.data?.docs ?? [];
+                  return _buildOrderCard(context, fullOrderData, itemStatus);
+                },
+              );
+            },
           );
         },
       ),
     );
   }
 
-  Widget _buildStatusChip(String status) {
-    Color bgColor = status == 'Delivered' ? Colors.green.shade100 : Colors.orange.shade100;
-    Color textColor = status == 'Delivered' ? Colors.green.shade800 : Colors.orange.shade800;
+  Widget _buildOrderCard(
+    BuildContext context,
+    Map<String, dynamic> order,
+    List<QueryDocumentSnapshot> itemStatusDocs,
+  ) {
+    final String itemSummary = itemStatusDocs.map((doc) {
+      final data = doc.data() as Map<String, dynamic>;
+      final title = data['title'] ?? 'Untitled';
+      final status = data['status'] ?? 'Pending';
+      return "$title – $status";
+    }).join('\n');
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        status,
-        style: TextStyle(color: textColor, fontWeight: FontWeight.w600),
+    return Card(
+      elevation: 5,
+      margin: const EdgeInsets.only(bottom: 20),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header Row
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: Colors.brown.shade100,
+                  child: Icon(Icons.shopping_bag, color: Colors.brown.shade700),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Order: ${order['orderId']}",
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
+                      Text('Placed on ${order['date'].toDate().toLocal().toString().split(" ")[0]}'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // Items with status
+            Text(itemSummary, style: const TextStyle(fontSize: 14, height: 1.4)),
+
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildPaymentRow(order['paymentMethod'] ?? 'Unknown'),
+                Text(
+                  '\$${(order['total'] ?? 0).toStringAsFixed(2)}',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const Divider(height: 20),
+
+            // Action Buttons
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ReceiptPage(order: order),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.receipt_long),
+                  label: const Text('Receipt'),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -150,22 +169,6 @@ class OrderHistoryPage extends StatelessWidget {
         const SizedBox(width: 4),
         Text(method, style: const TextStyle(fontWeight: FontWeight.w500)),
       ],
-    );
-  }
-
-  void _showMessage(BuildContext context, String message) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Info'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          )
-        ],
-      ),
     );
   }
 }

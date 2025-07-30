@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'product_detail.dart'; // <-- Make sure this exists
+import 'product_detail.dart'; // <-- Ensure this file exists
 
 class AllProductsPage extends StatelessWidget {
   final String category;
@@ -66,7 +66,7 @@ class AllProductsPage extends StatelessWidget {
                         MaterialPageRoute(
                           builder: (_) => ProductDetailPage(
                             title: title,
-                            artist: artistName,
+                            artist: artistId, // ✅ FIXED: now passing artist UID
                             description: description,
                             imageUrl: imageUrl,
                             price: price,

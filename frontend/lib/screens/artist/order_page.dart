@@ -1,69 +1,90 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-// Simple OrderModel class
-class OrderModel {
-  final String customerName;
-  final String artworkTitle;
-  final int quantity;
-  final double totalPrice;
-  final String status;
-  final String? imagePath;
+class ArtistOrderPage extends StatelessWidget {
+  const ArtistOrderPage({super.key});
 
-  OrderModel({
-    required this.customerName,
-    required this.artworkTitle,
-    required this.quantity,
-    required this.totalPrice,
-    required this.status,
-    this.imagePath,
-  });
-}
+  Stream<List<Map<String, dynamic>>> get artistOrdersStream {
+    final artistUid = FirebaseAuth.instance.currentUser?.uid;
+    if (artistUid == null) return const Stream.empty();
 
-// Sample orders
-final List<OrderModel> sampleOrders = [
-  OrderModel(
-    customerName: 'Alice Johnson',
-    artworkTitle: 'Sunset Glow',
-    quantity: 1,
-    totalPrice: 150.0,
-    status: 'Pending',
-    imagePath: 'assets/images/sunset_glow.jpg',
-  ),
-  OrderModel(
-    customerName: 'Bob Smith',
-    artworkTitle: 'Abstract Blue',
-    quantity: 2,
-    totalPrice: 300.0,
-    status: 'Shipped',
-    imagePath: 'assets/images/abstract_blue.jpg',
-  ),
-  OrderModel(
-    customerName: 'Carol Davis',
-    artworkTitle: 'Modern Portrait',
-    quantity: 1,
-    totalPrice: 200.0,
-    status: 'Processing',
-    imagePath: 'assets/images/modern_portrait.jpg',
-  ),
-];
+    return FirebaseFirestore.instance
+        .collection('orders')
+        .orderBy('date', descending: true)
+        .snapshots()
+        .asyncMap((snapshot) async {
+      List<Map<String, dynamic>> artistOrders = [];
 
-class OrderPage extends StatelessWidget {
-  const OrderPage({super.key});
+      for (final orderDoc in snapshot.docs) {
+        final orderData = orderDoc.data();
+        final itemStatusSnap = await orderDoc.reference
+            .collection('itemStatus')
+            .where('artistId', isEqualTo: artistUid)
+            .get();
 
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return Colors.orange;
-      case 'processing':
-        return Colors.blue;
-      case 'shipped':
-        return Colors.green;
-      case 'delivered':
-        return Colors.purple;
-      case 'cancelled':
-        return Colors.red;
-      default:
-        return Colors.grey;
+        final artistItems = itemStatusSnap.docs.map((doc) {
+          final data = doc.data();
+          return {
+            'id': doc.id,
+            'title': data['title'],
+            'quantity': data['quantity'],
+            'status': data['status'],
+            'ref': doc.reference,
+          };
+        }).toList();
+
+        if (artistItems.isNotEmpty) {
+          artistOrders.add({
+            'orderId': orderDoc.id,
+            'customerId': orderData['userId'],
+            'date': orderData['date'],
+            'items': artistItems,
+          });
+        }
+      }
+
+      return artistOrders;
+    });
+  }
+
+  Future<void> _updateStatus(
+      DocumentReference docRef, String newStatus, BuildContext context) async {
+    try {
+      await docRef.update({'status': newStatus});
+
+      final orderId = docRef.parent.parent?.id;
+      if (orderId != null && newStatus == 'Delivered') {
+        await _checkAndMarkOrderDelivered(orderId);
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Status updated to "$newStatus"')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
+
+  Future<void> _checkAndMarkOrderDelivered(String orderId) async {
+    final itemStatusSnapshot = await FirebaseFirestore.instance
+        .collection('orders')
+        .doc(orderId)
+        .collection('itemStatus')
+        .get();
+
+    final allDelivered = itemStatusSnapshot.docs.every((doc) {
+      final status = doc.data()['status'];
+      return status == 'Delivered';
+    });
+
+    if (allDelivered) {
+      await FirebaseFirestore.instance
+          .collection('orders')
+          .doc(orderId)
+          .update({'status': 'Delivered'});
     }
   }
 
@@ -71,427 +92,106 @@ class OrderPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Orders'),
-        backgroundColor: const Color(0xFFE95420),
-        foregroundColor: Colors.white,
-        elevation: 0,
+        title: const Text('Your Art Orders'),
+        backgroundColor: Colors.deepOrange,
       ),
-      body: sampleOrders.isEmpty
-          ? const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.shopping_bag_outlined,
-              size: 64,
-              color: Colors.grey,
-            ),
-            SizedBox(height: 16),
-            Text(
-              'No orders found',
-              style: TextStyle(
-                fontSize: 18,
-                color: Colors.grey,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      )
-          : ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: sampleOrders.length,
-        itemBuilder: (context, index) {
-          final order = sampleOrders[index];
-          return Card(
-            margin: const EdgeInsets.only(bottom: 16),
-            elevation: 2,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => OrderDetailPage(order: order),
-                  ),
-                );
-              },
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Product Image
-                        Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
-                            color: Colors.grey.shade200,
-                          ),
-                          child: order.imagePath != null
-                              ? ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.asset(
-                              order.imagePath!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return const Icon(
-                                  Icons.image_outlined,
-                                  color: Colors.grey,
-                                  size: 30,
-                                );
-                              },
-                            ),
-                          )
-                              : const Icon(
-                            Icons.image_outlined,
-                            color: Colors.grey,
-                            size: 30,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        // Order Details
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                order.artworkTitle,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
+      body: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: artistOrdersStream,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final orders = snapshot.data ?? [];
+
+          if (orders.isEmpty) {
+            return const Center(child: Text('No orders for your artworks yet.'));
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: orders.length,
+            itemBuilder: (context, index) {
+              final order = orders[index];
+              final orderId = order['orderId'];
+              final customerId = order['customerId'];
+              final date = (order['date'] as Timestamp?)?.toDate();
+              final items = List<Map<String, dynamic>>.from(order['items']);
+
+              return Card(
+                margin: const EdgeInsets.only(bottom: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 4,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Order ID: $orderId', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      if (date != null)
+                        Text('Date: ${date.toLocal().toString().split(" ")[0]}'),
+                      StreamBuilder<DocumentSnapshot>(
+                        stream: FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(customerId)
+                            .snapshots(),
+                        builder: (context, userSnapshot) {
+                          if (!userSnapshot.hasData) return const SizedBox();
+                          final userData = userSnapshot.data!.data() as Map<String, dynamic>?;
+                          final customerName = userData?['name'] ?? 'Unknown Customer';
+                          return Text('Ordered by: $customerName');
+                        },
+                      ),
+                      const Divider(height: 24),
+                      ...items.map((item) {
+                        final title = item['title'] ?? 'Untitled';
+                        final quantity = item['quantity'] ?? 1;
+                        final docRef = item['ref'] as DocumentReference;
+
+                        return StreamBuilder<DocumentSnapshot>(
+                          stream: docRef.snapshots(),
+                          builder: (context, itemSnapshot) {
+                            if (!itemSnapshot.hasData) return const SizedBox();
+                            final status = itemSnapshot.data?.get('status') ?? 'Pending';
+
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Artwork: $title', style: const TextStyle(fontSize: 16)),
+                                Text('Quantity: $quantity'),
+                                Row(
+                                  children: [
+                                    const Text('Status:'),
+                                    const SizedBox(width: 12),
+                                    DropdownButton<String>(
+                                      value: status,
+                                      items: const [
+                                        DropdownMenuItem(value: 'Pending', child: Text('Pending')),
+                                        DropdownMenuItem(value: 'Processing', child: Text('Processing')),
+                                        DropdownMenuItem(value: 'Shipped', child: Text('Shipped')),
+                                        DropdownMenuItem(value: 'Delivered', child: Text('Delivered')),
+                                      ],
+                                      onChanged: (newValue) {
+                                        if (newValue != null && newValue != status) {
+                                          _updateStatus(docRef, newValue, context);
+                                        }
+                                      },
+                                    ),
+                                  ],
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Customer: ${order.customerName}',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey.shade600,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Quantity: ${order.quantity}',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey.shade600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        // Status and Price
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: _getStatusColor(order.status),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                order.status,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              '\$${order.totalPrice.toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFFE95420),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        TextButton.icon(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => OrderDetailPage(order: order),
-                              ),
+                                const Divider(),
+                              ],
                             );
                           },
-                          icon: const Icon(Icons.visibility_outlined),
-                          label: const Text('View Details'),
-                          style: TextButton.styleFrom(
-                            foregroundColor: const Color(0xFFE95420),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        );
+                      }),
+                    ],
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           );
         },
-      ),
-    );
-  }
-}
-
-// Order Detail Page
-class OrderDetailPage extends StatelessWidget {
-  final OrderModel order;
-
-  const OrderDetailPage({super.key, required this.order});
-
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return Colors.orange;
-      case 'processing':
-        return Colors.blue;
-      case 'shipped':
-        return Colors.green;
-      case 'delivered':
-        return Colors.purple;
-      case 'cancelled':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Order Details'),
-        backgroundColor: const Color(0xFFE95420),
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Product Image
-            Container(
-              width: double.infinity,
-              height: 250,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color: Colors.grey.shade200,
-              ),
-              child: order.imagePath != null
-                  ? ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.asset(
-                  order.imagePath!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Center(
-                      child: Icon(
-                        Icons.image_outlined,
-                        color: Colors.grey,
-                        size: 80,
-                      ),
-                    );
-                  },
-                ),
-              )
-                  : const Center(
-                child: Icon(
-                  Icons.image_outlined,
-                  color: Colors.grey,
-                  size: 80,
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Order Info Card
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          order.artworkTitle,
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _getStatusColor(order.status),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Text(
-                            order.status,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    _buildDetailRow('Customer', order.customerName),
-                    _buildDetailRow('Quantity', order.quantity.toString()),
-                    _buildDetailRow('Unit Price', '\$${(order.totalPrice / order.quantity).toStringAsFixed(2)}'),
-                    _buildDetailRow('Total Price', '\$${order.totalPrice.toStringAsFixed(2)}', isTotal: true),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Action Buttons
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      // Handle status update
-                      _showStatusUpdateDialog(context);
-                    },
-                    icon: const Icon(Icons.edit_outlined),
-                    label: const Text('Update Status'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFE95420),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      // Handle contact customer
-                      _showContactOptions(context);
-                    },
-                    icon: const Icon(Icons.contact_support_outlined),
-                    label: const Text('Contact Customer'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFE95420),
-                      side: const BorderSide(color: Color(0xFFE95420)),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value, {bool isTotal = false}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey.shade600,
-              fontWeight: isTotal ? FontWeight.w600 : FontWeight.normal,
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: isTotal ? const Color(0xFFE95420) : Colors.black,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showStatusUpdateDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Update Order Status'),
-        content: const Text('Status update functionality would be implemented here.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Update'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showContactOptions(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Contact Customer'),
-        content: const Text('Contact options would be implemented here.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Contact'),
-          ),
-        ],
       ),
     );
   }

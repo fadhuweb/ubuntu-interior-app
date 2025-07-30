@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'login_page.dart';
-import 'order_history.dart' as order_history;
+import 'order_history_page.dart' as order_history;
 import 'language_page.dart';
 import 'notifications_page.dart' as notifications;
 import 'privacy_page.dart';
@@ -100,7 +100,7 @@ class SettingsPage extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const order_history.OrderHistory(),
+                  builder: (_) => const order_history.OrderHistoryPage(),
                 ),
               );
             },

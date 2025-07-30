@@ -5,6 +5,7 @@ import 'signup_screen.dart';
 import 'home_page.dart';
 import 'package:ubuntu_app/screens/artist/artist_home_page.dart';
 import 'reset_password_page.dart';
+import 'package:ubuntu_app/services/auth_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -17,7 +18,9 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   bool _isLoading = false;
-  bool _obscurePassword = true; // 👈 NEW
+  bool _obscurePassword = true;
+
+  final AuthService _authService = AuthService();
 
   @override
   Widget build(BuildContext context) {
@@ -50,10 +53,7 @@ class _LoginPageState extends State<LoginPage> {
                 alignment: Alignment.centerRight,
                 child: TextButton(
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const ResetPasswordPage()),
-                    );
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const ResetPasswordPage()));
                   },
                   child: const Text(
                     "Forgot Password?",
@@ -63,6 +63,8 @@ class _LoginPageState extends State<LoginPage> {
               ),
               const SizedBox(height: 16),
               _buildLoginButton(),
+              const SizedBox(height: 16),
+              _buildGoogleLoginButton(),
               const SizedBox(height: 20),
               Center(
                 child: TextButton(
@@ -138,7 +140,7 @@ class _LoginPageState extends State<LoginPage> {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: _isLoading ? null : _handleLogin,
+        onPressed: _isLoading ? null : _handleEmailPasswordLogin,
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF8C4A2F),
           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -161,7 +163,23 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Future<void> _handleLogin() async {
+  Widget _buildGoogleLoginButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        icon: Image.asset("assets/google_logo.png", height: 20),
+        label: Text("Continue with Google", style: TextStyle(color: Colors.black87)),
+        onPressed: _isLoading ? null : _handleGoogleLogin,
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          side: BorderSide(color: Colors.grey.shade400),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleEmailPasswordLogin() async {
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
 
@@ -170,33 +188,62 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
+    setState(() => _isLoading = true);
+
     try {
-      setState(() => _isLoading = true);
+      final user = await _authService.login(email, password);
+      if (user == null) throw Exception("Login failed");
 
-      final userCredential = await FirebaseAuth.instance
-          .signInWithEmailAndPassword(email: email, password: password);
-
-      final uid = userCredential.user?.uid;
-      if (uid == null) throw Exception("User not found.");
-
-      final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-      final role = doc.data()?['role'];
-
-      if (role == null) throw Exception("User role not found in Firestore.");
-
-      _showSnackbar("Login successful!", isError: false);
-
-      if (role == 'artist') {
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ArtistHomePage()));
-      } else {
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
+      if (!user.emailVerified) {
+        await FirebaseAuth.instance.signOut(); // Sign out the unverified user
+        _showSnackbar("Please verify your email before logging in.", isError: true);
+        return;
       }
+
+      await _redirectBasedOnRole(user.uid);
     } on FirebaseAuthException catch (e) {
       _showSnackbar(e.message ?? "Login failed", isError: true);
     } catch (e) {
       _showSnackbar("Login error: ${e.toString()}", isError: true);
     } finally {
       setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _handleGoogleLogin() async {
+    setState(() => _isLoading = true);
+    try {
+      final user = await _authService.signInWithGoogle();
+      if (user == null) {
+        _showSnackbar("Google sign-in cancelled", isError: true);
+        return;
+      }
+
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+
+      if (!doc.exists) {
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'email': user.email,
+          'role': 'customer',
+        });
+      }
+
+      await _redirectBasedOnRole(user.uid);
+    } catch (e) {
+      _showSnackbar("Google login error: ${e.toString()}", isError: true);
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _redirectBasedOnRole(String uid) async {
+    final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final role = doc.data()?['role'];
+
+    if (role == 'artist') {
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ArtistHomePage()));
+    } else {
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
     }
   }
 

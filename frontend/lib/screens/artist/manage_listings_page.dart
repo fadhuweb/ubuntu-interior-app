@@ -1,139 +1,152 @@
 import 'package:flutter/material.dart';
-import 'package:ubuntu_app/screens/artist/upload_artwork_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-class ManageListingsPage extends StatefulWidget {
+class ManageListingsPage extends StatelessWidget {
   const ManageListingsPage({super.key});
 
   @override
-  State<ManageListingsPage> createState() => _ManageListingsPageState();
-}
-
-class _ManageListingsPageState extends State<ManageListingsPage> {
-  final List<Map<String, String>> dummyListings = [
-    {
-      'title': 'Sunset Over Hills',
-      'price': '50.00',
-      'image':
-      'https://images.unsplash.com/photo-1504198453319-5ce911bafcde?fit=crop&w=800&q=80'
-    },
-    {
-      'title': 'Abstract Lines',
-      'price': '40.00',
-      'image':
-      'https://images.unsplash.com/photo-1602526212863-6fa6a7580ff1?fit=crop&w=800&q=80'
-    },
-    {
-      'title': 'Ocean Dream',
-      'price': '60.00',
-      'image':
-      'https://images.unsplash.com/photo-1519222970733-f546218fa6d1?fit=crop&w=800&q=80'
-    },
-  ];
-
-  void _deleteItem(int index) {
-    setState(() {
-      dummyListings.removeAt(index);
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Listing deleted')),
-    );
-  }
-
-  void _editItem(int index) {
-    // Navigate to upload page with existing data for editing
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => UploadArtworkPage(
-          // You can pass the existing data here if UploadArtworkPage supports editing
-          // existingData: dummyListings[index],
-        ),
-      ),
-    );
-  }
-
-  void _navigateToUploadPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => UploadArtworkPage()),
-    );
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final artistId = FirebaseAuth.instance.currentUser!.uid;
+    final artworksRef = FirebaseFirestore.instance
+        .collection('artworks')
+        .where('createdBy', isEqualTo: artistId);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Manage My Listings'),
-        backgroundColor: Colors.deepOrange,
+        backgroundColor: const Color(0xFFE95420),
+        title: const Text('Manage Listings',
+            style: TextStyle(color: Colors.white)),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: dummyListings.isEmpty
-          ? const Center(child: Text('No listings to display.'))
-          : ListView.builder(
-        itemCount: dummyListings.length,
-        itemBuilder: (context, index) {
-          final item = dummyListings[index];
-          return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: ListTile(
-              leading: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  item['image']!,
-                  width: 60,
-                  height: 60,
-                  fit: BoxFit.cover,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[200],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Center(
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    );
-                  },
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.broken_image, color: Colors.grey, size: 24),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: artworksRef.snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return const Center(child: Text('Something went wrong.'));
+          }
+
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final docs = snapshot.data?.docs ?? [];
+
+          if (docs.isEmpty) {
+            return const Center(child: Text('You have no artworks listed.'));
+          }
+
+          return ListView.separated(
+            padding: const EdgeInsets.all(16),
+            itemCount: docs.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              final data = docs[index].data() as Map<String, dynamic>;
+              final docId = docs[index].id;
+
+              return Card(
+                child: ListTile(
+                  leading: data['imageUrl'] != null
+                      ? Image.network(data['imageUrl'], width: 60, height: 60, fit: BoxFit.cover)
+                      : const Icon(Icons.image),
+                  title: Text(data['title'] ?? 'Untitled'),
+                  subtitle: Text('\$${(data['price'] ?? 0).toString()}'),
+                  trailing: PopupMenuButton<String>(
+                    onSelected: (value) {
+                      if (value == 'edit') {
+                        _showEditSheet(context, docId, data);
+                      } else if (value == 'delete') {
+                        _confirmDelete(context, docId);
+                      }
+                    },
+                    itemBuilder: (_) => [
+                      const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                      const PopupMenuItem(value: 'delete', child: Text('Delete')),
+                    ],
                   ),
                 ),
-              ),
-              title: Text(item['title']!),
-              subtitle: Text('\$${item['price']}'),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.edit, color: Colors.blue),
-                    onPressed: () => _editItem(index),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => _deleteItem(index),
-                  ),
-                ],
-              ),
-            ),
+              );
+            },
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _navigateToUploadPage,
-        backgroundColor: Colors.deepOrange,
-        child: const Icon(Icons.add),
-        tooltip: 'Upload New Artwork',
+    );
+  }
+
+  void _confirmDelete(BuildContext context, String docId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete Artwork'),
+        content: const Text('Are you sure you want to delete this artwork?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await FirebaseFirestore.instance.collection('artworks').doc(docId).delete();
+    }
+  }
+
+  void _showEditSheet(BuildContext context, String docId, Map<String, dynamic> data) {
+    final titleController = TextEditingController(text: data['title']);
+    final descController = TextEditingController(text: data['description']);
+    final priceController = TextEditingController(text: (data['price'] ?? '').toString());
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => Padding(
+        padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 16, right: 16, top: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Edit Artwork', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            TextField(
+              controller: titleController,
+              decoration: const InputDecoration(labelText: 'Title'),
+            ),
+            TextField(
+              controller: descController,
+              decoration: const InputDecoration(labelText: 'Description'),
+            ),
+            TextField(
+              controller: priceController,
+              decoration: const InputDecoration(labelText: 'Price'),
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.save),
+              label: const Text('Save Changes'),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE95420)),
+              onPressed: () async {
+                final newTitle = titleController.text.trim();
+                final newDesc = descController.text.trim();
+                final newPrice = double.tryParse(priceController.text.trim()) ?? 0;
+
+                await FirebaseFirestore.instance.collection('artworks').doc(docId).update({
+                  'title': newTitle,
+                  'description': newDesc,
+                  'price': newPrice,
+                });
+
+                Navigator.pop(context);
+              },
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
       ),
     );
   }

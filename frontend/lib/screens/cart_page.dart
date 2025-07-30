@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'checkout_page.dart';
 import 'home_page.dart';
+import 'payment_screen.dart'; // ✅ Import your payment screen
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
@@ -40,15 +40,6 @@ class _CartPageState extends State<CartPage> {
     );
   }
 
-  void _navigateToCheckout(List<Map<String, dynamic>> cartItems, double total) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => CheckoutPage(cartItems: cartItems, totalAmount: total),
-      ),
-    );
-  }
-
   void _continueShopping() {
     Navigator.pushReplacement(
       context,
@@ -83,10 +74,11 @@ class _CartPageState extends State<CartPage> {
             final data = doc.data() as Map<String, dynamic>;
             return {
               'id': doc.id,
-              'title': data['title'] ?? '',
+              'title': data['title'] ?? 'Untitled',
               'price': (data['price'] ?? 0).toDouble(),
               'quantity': (data['quantity'] ?? 1) as int,
               'image': data['imageUrl'] ?? '',
+              'artistId': data['artistId'] ?? '',
               'doc': doc,
             };
           }).toList();
@@ -194,14 +186,18 @@ class _CartPageState extends State<CartPage> {
                         const SizedBox(width: 16),
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: () => _navigateToCheckout(
-                              cartItems.map((item) => {
-                                    'title': item['title'],
-                                    'price': item['price'],
-                                    'quantity': item['quantity'],
-                                  }).toList(),
-                              totalPrice,
-                            ),
+                            // ✅ Navigates to payment screen and passes data
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => PaymentScreen(
+                                    cartItems: cartItems,
+                                    totalPrice: totalPrice,
+                                  ),
+                                ),
+                              );
+                            },
                             style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
                             child: const Text('Checkout', style: TextStyle(color: Colors.white)),
                           ),

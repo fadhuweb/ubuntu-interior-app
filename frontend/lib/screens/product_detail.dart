@@ -32,7 +32,7 @@ class ProductDetailPage extends StatelessWidget {
     }
   }
 
-  // Add to cart logic
+  // Add to cart logic (with FIX: use 'title' field consistently)
   Future<void> addToCart(BuildContext context) async {
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -48,8 +48,9 @@ class ProductDetailPage extends StatelessWidget {
           .doc(user.uid)
           .collection('cart');
 
+      // Check if item already exists by title
       final existing = await cartRef
-          .where('artworkTitle', isEqualTo: title)
+          .where('title', isEqualTo: title) // ✅ FIXED: consistent field name
           .limit(1)
           .get();
 
@@ -59,7 +60,7 @@ class ProductDetailPage extends StatelessWidget {
         await cartRef.doc(doc.id).update({'quantity': currentQty + 1});
       } else {
         await cartRef.add({
-          'artworkTitle': title,
+          'title': title, // ✅ FIXED: use 'title'
           'artistId': artist,
           'description': description,
           'imageUrl': imageUrl,
