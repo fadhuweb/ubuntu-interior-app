@@ -103,7 +103,7 @@ class _UploadArtworkPageState extends State<UploadArtworkPage> {
 
       setState(() {
         _imageFile = null;
-        _selectedCategory = 'Uncategorized';
+        _selectedCategory = 'Textile';
         _isUploading = false;
       });
 
@@ -184,6 +184,7 @@ class _UploadArtworkPageState extends State<UploadArtworkPage> {
                     onPressed: _isUploading ? null : _uploadArtwork,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.deepPurple,
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -191,7 +192,14 @@ class _UploadArtworkPageState extends State<UploadArtworkPage> {
                     ),
                     child: _isUploading
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text('Upload Artwork'),
+                        : const Text(
+                            'Upload Artwork',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
                   ),
                 ),
               ],

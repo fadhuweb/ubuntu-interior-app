@@ -74,22 +74,42 @@ class _ReceiptPageState extends State<ReceiptPage> {
       appBar: AppBar(
         title: const Text('Receipt'),
         backgroundColor: Colors.brown.shade700,
+        centerTitle: true,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: loading
             ? const Center(child: CircularProgressIndicator())
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            : ListView(
                 children: [
-                  Text("Order ID: $orderId", style: const TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  Text("Date: $formattedDate"),
-                  Text("Payment: $paymentMethod"),
-                  const Divider(height: 24),
+                  Card(
+                    color: Colors.brown.shade50,
+                    elevation: 3,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _infoRow("Order ID:", orderId),
+                          _infoRow("Date:", formattedDate),
+                          _infoRow("Payment:", paymentMethod),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
 
-                  const Text("Items:", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  Text("Items",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.brown.shade800,
+                      )),
                   const SizedBox(height: 8),
+
                   ...items.map((item) {
                     final String title = item['title'];
                     final int quantity = item['quantity'];
@@ -97,47 +117,90 @@ class _ReceiptPageState extends State<ReceiptPage> {
                     final String status = item['status'];
                     final double itemTotal = price * quantity;
 
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(child: Text("$title x$quantity")),
-                              Text("\$${itemTotal.toStringAsFixed(2)}"),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              const Text("Status: "),
-                              Text(
-                                status,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: _statusColor(status),
+                    return Card(
+                      elevation: 2,
+                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    "$title x$quantity",
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                          const Divider(),
-                        ],
+                                Text(
+                                  "\$${itemTotal.toStringAsFixed(2)}",
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                const Text("Status: ",
+                                    style: TextStyle(color: Colors.grey)),
+                                Text(
+                                  status,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: _statusColor(status),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   }),
 
                   const SizedBox(height: 12),
+                  Divider(color: Colors.brown.shade300),
+                  const SizedBox(height: 4),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text("Total", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                      Text("\$${totalAmount.toStringAsFixed(2)}", style: const TextStyle(fontSize: 16)),
+                      const Text("Total",
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold)),
+                      Text("\$${totalAmount.toStringAsFixed(2)}",
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ],
               ),
+      ),
+    );
+  }
+
+  Widget _infoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        children: [
+          Text(label,
+              style:
+                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(value,
+                style: const TextStyle(fontSize: 15, color: Colors.black87)),
+          ),
+        ],
       ),
     );
   }

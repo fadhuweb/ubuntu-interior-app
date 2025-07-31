@@ -1,19 +1,28 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'all_products_page.dart'; // <-- Ensure this file exists
+import 'all_products_page.dart';
 import 'cart_page.dart' as cart;
 import 'settings_page.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
-  final List<Map<String, String>> categories = const [
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  String userName = 'Loading...';
+
+  final List<Map<String, String>> categories = [
     {
       'title': 'Textiles',
       'image': 'https://images.pexels.com/photos/31730273/pexels-photo-31730273.jpeg',
     },
     {
       'title': 'Pottery',
-      'image': 'https://images.unsplash.com/photo-1586201375761-83865001e17b',
+      'image': 'https://images.unsplash.com/photo-1520408222757-6f9f95d87d5d?q=80&w=1960&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', // <-- Updated Pottery image
     },
     {
       'title': 'Ceramics',
@@ -24,6 +33,22 @@ class HomePage extends StatelessWidget {
       'image': 'https://images.unsplash.com/photo-1541961017774-22349e4a1262',
     },
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    fetchUserName();
+  }
+
+  Future<void> fetchUserName() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      setState(() {
+        userName = doc['name'] ?? 'Customer';
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,9 +76,9 @@ class HomePage extends StatelessWidget {
                       "Welcome back,",
                       style: TextStyle(fontSize: 16, color: Colors.white70),
                     ),
-                    const Text(
-                      "Ubuntu Interiors",
-                      style: TextStyle(
+                    Text(
+                      userName,
+                      style: const TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,

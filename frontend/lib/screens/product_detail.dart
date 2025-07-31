@@ -18,21 +18,16 @@ class ProductDetailPage extends StatelessWidget {
     required this.price,
   });
 
-  // Fetch artist name from Firestore using UID
   Future<String> fetchArtistName() async {
     try {
       final doc = await FirebaseFirestore.instance.collection('users').doc(artist).get();
       if (doc.exists) {
         return doc.data()?['name'] ?? 'Unknown Artist';
-      } else {
-        return 'Unknown Artist';
       }
-    } catch (e) {
-      return 'Unknown Artist';
-    }
+    } catch (_) {}
+    return 'Unknown Artist';
   }
 
-  // Add to cart logic with context safety
   Future<void> addToCart(BuildContext context) async {
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -50,7 +45,6 @@ class ProductDetailPage extends StatelessWidget {
           .doc(user.uid)
           .collection('cart');
 
-      // Check if item already exists by title
       final existing = await cartRef
           .where('title', isEqualTo: title)
           .limit(1)
@@ -102,21 +96,23 @@ class ProductDetailPage extends StatelessWidget {
         return Scaffold(
           backgroundColor: Colors.white,
           appBar: AppBar(
-            title: const Text("Product Detail"),
+            title: const Text("Artwork Details"),
             backgroundColor: Colors.brown[700],
             centerTitle: true,
           ),
           body: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(20),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Artist Profile
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     const CircleAvatar(
-                      radius: 30,
+                      radius: 28,
                       backgroundColor: Colors.brown,
-                      child: Icon(Icons.person, color: Colors.white),
+                      child: Icon(Icons.person, color: Colors.white, size: 28),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -127,9 +123,11 @@ class ProductDetailPage extends StatelessWidget {
                             artistName,
                             style: const TextStyle(
                               fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
                             ),
                           ),
+                          const SizedBox(height: 4),
                           const Text(
                             "Blending native passion with modern African stories.",
                             style: TextStyle(fontSize: 13, color: Colors.grey),
@@ -138,86 +136,107 @@ class ProductDetailPage extends StatelessWidget {
                       ),
                     ),
                     ElevatedButton(
-                      onPressed: () {},
+                      onPressed: () {}, // Follow logic
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.brown[600],
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
+                          horizontal: 20,
+                          vertical: 10,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      child: const Text("Follow"),
+                      child: const Text(
+                        "Follow",
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ],
                 ),
 
                 const SizedBox(height: 24),
 
-                // Image
+                // Artwork Image
                 ClipRRect(
                   borderRadius: BorderRadius.circular(16),
                   child: Image.network(
                     imageUrl,
-                    height: 200,
+                    height: 220,
                     width: double.infinity,
                     fit: BoxFit.cover,
                   ),
                 ),
+
                 const SizedBox(height: 24),
 
                 // Title & Price
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.brown,
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.brown,
+                        ),
                       ),
                     ),
                     Text(
                       "\$${price.toStringAsFixed(2)}",
                       style: const TextStyle(
-                        fontSize: 20,
+                        fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: Colors.black87,
                       ),
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 20),
 
                 // Description
                 Container(
+                  width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.brown[50],
-                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.brown.shade50,
                     border: Border.all(color: Colors.brown.shade100),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    "“$description”",
+                    description,
                     style: const TextStyle(
-                      fontSize: 16,
-                      fontStyle: FontStyle.italic,
+                      fontSize: 15.5,
                       color: Colors.black87,
+                      height: 1.5,
                     ),
                   ),
                 ),
+
                 const Spacer(),
 
                 // Add to Cart Button
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton(
+                  child: ElevatedButton.icon(
                     onPressed: () => addToCart(context),
+                    icon: const Icon(Icons.shopping_cart),
+                    label: const Text(
+                      "Add to Cart",
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.brown[700],
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    child: const Text("Add to Cart"),
                   ),
                 ),
               ],

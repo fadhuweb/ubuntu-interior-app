@@ -50,7 +50,16 @@ class ArtistHomePage extends StatelessWidget {
             FutureBuilder<DocumentSnapshot>(
               future: usersRef.get(),
               builder: (context, snapshot) {
-                final name = snapshot.data?.get('name') ?? 'Artist';
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (!snapshot.hasData || !snapshot.data!.exists) {
+                  return _buildErrorCard();
+                }
+
+                final name = snapshot.data!.get('name') ?? 'Artist';
+
                 return Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
@@ -60,8 +69,9 @@ class ArtistHomePage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                          color: Colors.deepOrange.withAlpha(77),
-                          blurRadius: 12)
+                        color: Colors.deepOrange.withAlpha(77),
+                        blurRadius: 12,
+                      )
                     ],
                   ),
                   child: Row(
@@ -229,6 +239,28 @@ class ArtistHomePage extends StatelessWidget {
       icon: Icon(icon, size: 20),
       label: Text(title,
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+    );
+  }
+
+  Widget _buildErrorCard() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade200,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.error_outline, color: Colors.red),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Could not load artist name.',
+              style: TextStyle(fontSize: 16, color: Colors.black54),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
