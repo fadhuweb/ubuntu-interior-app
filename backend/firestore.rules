@@ -19,10 +19,12 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Orders: Users can manage only their own orders
+    // Orders: Users can read only their own orders.
+    // Orders are created by the confirmPayment Cloud Function (Admin SDK), so clients never write.
     match /orders/{orderId} {
-      allow read, write: if request.auth != null &&
-                         request.resource.data.userId == request.auth.uid;
+      allow read: if request.auth != null &&
+                  resource.data.userId == request.auth.uid;
+      allow write: if false;
     }
 
     // Cart: Nested under each user, private access

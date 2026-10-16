@@ -31,10 +31,10 @@ exports.test = onRequest((req, res) => {
 // ✅ Create Payment Intent
 exports.createPaymentIntent = onCall(async (request) => {
   try {
-    const context = request.context;
+    const auth = request.auth;
     const data = request.data;
 
-    if (!context.auth) {
+    if (!auth) {
       throw new HttpsError('unauthenticated', 'User must be authenticated');
     }
 
@@ -52,7 +52,7 @@ exports.createPaymentIntent = onCall(async (request) => {
       amount: Math.round(amount * 100),
       currency,
       metadata: {
-        userId: context.auth.uid,
+        userId: auth.uid,
         artworkId,
         artistId,
         appName: 'Ubuntu Interior',
@@ -73,10 +73,10 @@ exports.createPaymentIntent = onCall(async (request) => {
 // ✅ Confirm Payment
 exports.confirmPayment = onCall(async (request) => {
   try {
-    const context = request.context;
+    const auth = request.auth;
     const data = request.data;
 
-    if (!context.auth) {
+    if (!auth) {
       throw new HttpsError('unauthenticated', 'User must be authenticated');
     }
 
@@ -93,7 +93,7 @@ exports.confirmPayment = onCall(async (request) => {
 
     if (paymentIntent.status === 'succeeded') {
       await db.collection('orders').add({
-        userId: context.auth.uid,
+        userId: auth.uid,
         paymentIntentId,
         amount: paymentIntent.amount / 100,
         currency: paymentIntent.currency,

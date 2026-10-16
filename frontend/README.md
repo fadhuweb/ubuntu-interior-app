@@ -1,16 +1,24 @@
-# ubuntu_app
+# Ubuntu Interiors (Flutter app)
 
-A new Flutter project.
+Flutter client for the Ubuntu Interiors marketplace. Buyers browse artworks and textiles and add items to a cart. Artists upload artworks. The backend has Stripe payment functions that the checkout screen does not call yet.
 
-## Getting Started
+## Run
 
-This project is a starting point for a Flutter application.
+```bash
+flutter pub get
+flutter run
+```
 
-A few resources to get you started if this is your first Flutter project:
+Requires Flutter with Dart SDK 3.8.1 or later.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## Firebase
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+The app uses Firebase Auth, Cloud Firestore, Cloud Storage, and Cloud Functions. Project settings are in `lib/firebase_options.dart` and `android/app/google-services.json`. To use your own project, run `flutterfire configure`.
+
+The backend lives in `../backend`.
+
+## Test
+
+```bash
+flutter test
+```
